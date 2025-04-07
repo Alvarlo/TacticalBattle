@@ -32,4 +32,21 @@ class Tablero:
             print("Posición fuera del tablero.")
             return False
         
-   
+    
+    def situacionDelTablero(self):
+        print("\n---- SITUACION DEL Tablero ----\n")
+        for fila in range(self.cantidadFilas):
+            fila_str = ""
+            for col in range(self.cantidadColumnas):
+                unidad = self.tablero[fila][col]
+                if unidad is None:
+                    fila_str += "[.]"
+                else:
+                    # Asumimos que la unidad tiene un atributo 'nombre' o 'tipo'
+                    fila_str += f"[{unidad.__class__.__name__[0]}]"  # Solo la inicial del tipo (ej: A, M, F, I)
+            print(fila_str)
+
+            
+
+        
+

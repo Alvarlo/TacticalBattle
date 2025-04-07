@@ -40,13 +40,10 @@ class Personaje(ABC):
         self._danyo = value
 
     # posicion
-    @property
-    def posicion(self):
-        return self._posicion
+    def set_posicion(self,x,y):
+        self.posicion = {"x": x, "y": y}
 
-    @posicion.setter
-    def posicion(self, value):
-        self._posicion = value
+   
 
     # enfriamiento_restante
     @property
@@ -78,6 +75,37 @@ class Personaje(ABC):
 
 
 
+    def mover(self,coordenadas,tablero):
+
+        # Convierte la letra en columna (A=0, B=1, C=2, ...)
+        letra = coordenadas[0].upper()
+        columna = ord(letra) - ord('A')
+
+        # Convierte el número en fila (1=0, 2=1, 3=2, ...)
+        fila = int(coordenadas[1:]) - 1
+
+        if tablero.esPosibleMoverAqui(fila,columna):
+
+            # 1. Obtener la posición actual
+            actual_x = self.posicion["x"]
+            actual_y = self.posicion["y"]
+
+            # 2. Vaciar la celda anterior
+            tablero.tablero[actual_x][actual_y] = None
+
+            # 3. Colocar la unidad en la nueva posición
+            tablero.colocarUnidad(self, fila, columna)
+
+            # 4. Actualizar la posición de la unidad
+            self.set_posicion(fila,columna)
+
+            return True
+
+        else:
+            return False
+            
+
+    
     @abstractmethod
     def habilidad(self):
         pass
