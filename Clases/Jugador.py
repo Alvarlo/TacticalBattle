@@ -21,6 +21,26 @@ class Jugador:
    
 
 
+    def generarPosicionesIniciales(self):
+        tamaño_tablero = 4
+        tipos_unidades = ["Artillero", "Medico", "Francotirador", "Inteligencia"]
+        posiciones_ocupadas = []
+        posicionesIniciales = []
+
+        for tipo in tipos_unidades:
+            while True:
+                x = random.randint(0, tamaño_tablero - 1)
+                y = random.randint(0, tamaño_tablero - 1)
+                nueva_pos = (x, y)
+
+                if nueva_pos not in posiciones_ocupadas:
+                    posiciones_ocupadas.append(nueva_pos)
+                    posicionesIniciales.append((tipo, x, y))
+                    break  
+
+        return posicionesIniciales
+
+
     def resumenDelEquipo(self):
         print("\n---- SITUACION DEL EQUIPO ----")
         for unidad in self.equipo:
@@ -28,7 +48,7 @@ class Jugador:
             y = unidad.posicion["y"]
             letra_columna = chr(ord('A') + y)  # convierte 0 → A, 1 → B, etc.
             numero_fila = x + 1                # convierte 0 → 1, etc.
-            print(f"{unidad.__class__.__name__} está en {letra_columna}{numero_fila} [Vida {unidad.vida_actual}/{unidad.vida_maxima}]")
+            print(f"{unidad.__class__.__name__} está en {letra_columna}{numero_fila} [Vida {unidad.vida_actual}/{unidad.vida_maxima}][enfriamiento:{unidad.enfriamiento_restante}]")
 
 
     def mostrar_menu_acciones(self):
@@ -37,42 +57,70 @@ class Jugador:
         opciones = {}
 
         for unidad in self.equipo:
-            print(f"{opcion}: Mover ({unidad.__class__.__name__})")
-            opciones[opcion] = (unidad, "mover")
-            opcion += 1
+            if unidad.vida_actual > 0:
+                print(f"{opcion}: Mover ({unidad.__class__.__name__})")
+                opciones[opcion] = (unidad, "mover")
+                opcion += 1
 
-            if unidad.__class__.__name__ == "Artillero" and unidad._enfriamiento_restante == 0:
+            if unidad.__class__.__name__ == "Artillero" and unidad._enfriamiento_restante == 0 and unidad.vida_actual > 0:
                 print(f"{opcion}: Disparar en área (2x2). Daño 1. ({unidad.__class__.__name__})")
                 opciones[opcion] = (unidad, "habilidad")
                 opcion += 1
-            elif unidad.__class__.__name__ == "Francotirador" and unidad._enfriamiento_restante == 0:
+            elif unidad.__class__.__name__ == "Francotirador" and unidad._enfriamiento_restante == 0 and unidad.vida_actual > 0:
                 print(f"{opcion}: Disparar a una celda. Daño 3. ({unidad.__class__.__name__})")
                 opciones[opcion] = (unidad, "habilidad")
                 opcion += 1
-            elif unidad.__class__.__name__ == "Inteligencia" and unidad._enfriamiento_restante == 0:
+            elif unidad.__class__.__name__ == "Inteligencia" and unidad._enfriamiento_restante == 0 and unidad.vida_actual > 0:
                 print(f"{opcion}: Revelar enemigos en área 2x2. ({unidad.__class__.__name__})")
                 opciones[opcion] = (unidad, "habilidad")
                 opcion += 1
-            elif unidad.__class__.__name__ == "Medico" and unidad._enfriamiento_restante == 0:
+            elif unidad.__class__.__name__ == "Medico" and unidad._enfriamiento_restante == 0 and unidad.vida_actual > 0 and unidad.esPosibleCurar(self):
                 print(f"{opcion}: Curar a un compañero. ({unidad.__class__.__name__})")
                 opciones[opcion] = (unidad, "habilidad")
                 opcion += 1
 
         return opciones
 
+
+    def oponentesMilitaresVivos(self):
+        for unidad in self.oponente.equipo:
+            if unidad.__class__.__name__ in ["Artillero", "Francotirador"] and unidad.vida_actual > 0:
+                return True
+        return False  
+
+    def reiniciarEnfriamiento (self):
+        for unidad in self.equipo:
+            if unidad.enfriamiento_restante == 1:
+                unidad.enfriamiento_restante = 0 
+            if unidad.enfriamiento_restante == 2:
+                unidad.enfriamiento_restante = 1  
+                      
+
+
     #turno(): función para gestionar la lógica del turno de un jugador. 
     #Devuelve un bool indicando si se ha llegado al final de la partida.
+    #La partida llega al final cuando han sido eliminadas las unidades militares del equipo (Francotirador y Artillero)
+    
     def turno(self):
+  
         self.resumenDelEquipo()
         self.tablero.situacionDelTablero()
-        self.realizarAccion()
+        self.realizarAccion()  
+
+        self.reiniciarEnfriamiento()
+
+        if self.oponentesMilitaresVivos(): 
+            return False      
+        else:
+            return True
+            
         
-        return True
     
     #realizar_accion(): permite al jugador elegir una acción de entre las acciones disponibles 
     #de los miembros vivos del equipo mediante un menú. La ejecuta y devuelve su código 
     #correspondiente. La llama el jugador en activo.
     def realizarAccion(self):
+
         while True:
             opciones = self.mostrar_menu_acciones()
 
@@ -112,7 +160,13 @@ class Jugador:
                             print("No se puede mover a esa posición. Está ocupada o fuera del tablero.")
 
                 elif accion == "habilidad":
-                    unidad.usar_habilidad(self.tablero)
+                    if unidad.__class__.__name__ == "Medico":
+                        unidad.habilidad(self.tablero)  # Usa el tablero propio
+
+                        
+                    else:
+                        unidad.habilidad(self.oponente.tablero)  # Usa el tablero enemigo
+                        
                     return  # acción válida realizada → salimos del método
             else:
                 print("Opción no válida. Intenta de nuevo.")
@@ -182,25 +236,7 @@ class Jugador:
         return False
     
 
-    def generarPosicionesIniciales(self):
-        tamaño_tablero = 4
-        tipos_unidades = ["Artillero", "Medico", "Francotirador", "Inteligencia"]
-        posiciones_ocupadas = []
-        posicionesIniciales = []
-
-        for tipo in tipos_unidades:
-            while True:
-                x = random.randint(0, tamaño_tablero - 1)
-                y = random.randint(0, tamaño_tablero - 1)
-                nueva_pos = (x, y)
-
-                if nueva_pos not in posiciones_ocupadas:
-                    posiciones_ocupadas.append(nueva_pos)
-                    posicionesIniciales.append((tipo, x, y))
-                    break  
-
-        return posicionesIniciales
-
+    
     
     #posicionar_equipo(): función auxiliar para permitir al usuario colocar a los miembros del equipo sobre el tablero
     def posicionarEquipo(self):
