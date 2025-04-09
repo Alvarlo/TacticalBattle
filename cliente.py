@@ -18,13 +18,17 @@ def recibir_mensajes(socket_cliente):
 
             # Desglosar mensajes por líneas si vienen agrupados
             mensajes = datos.strip().split("\n")
+
+
             for mensaje in mensajes:
                 mensaje = mensaje.strip()
                 print(f"\n[Servidor]: {mensaje}")
-
+                
                 if mensaje.startswith("ACCION:"):
                     accion = mensaje[7:].strip()
                     resultado = jugador.recibirAccion(accion)
+                    if resultado is None:
+                        resultado = "Sin efecto"
                     socket_cliente.sendall(f"RESULTADO:{resultado}\n".encode())
 
                 elif mensaje == "ES_TU_TURNO":

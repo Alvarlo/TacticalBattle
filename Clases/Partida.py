@@ -45,17 +45,25 @@ class Partida(threading.Thread):
 
                 # Recibir acción del jugador activo
                 accion = jugador_activo.socket.recv(1024).decode().strip()
+                print("Acción recibida:", accion)
+
                 if accion == "SALIR":
                     self.juego_activo = False
                     break
 
-                # Reenviar acción al jugador pasivo
+                # Reenviar al otro jugador
                 jugador_esperando.socket.sendall(f"ACCION:{accion}\n".encode())
 
-                # Esperar el resultado del pasivo
+                # Esperar respuesta
                 resultado = jugador_esperando.socket.recv(1024).decode().strip()
-                if resultado.startswith("RESULTADO:"):
-                    jugador_activo.socket.sendall(f"{resultado}\n".encode())
+                print("Resultado recibido:", resultado)
+
+                # Enviarlo de vuelta al jugador que actuó
+                jugador_activo.socket.sendall(f"{resultado}\n".encode())    
+
+                
+
+                
 
                 turno += 1
 

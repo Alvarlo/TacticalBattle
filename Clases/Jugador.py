@@ -102,14 +102,11 @@ class Jugador:
     #La partida llega al final cuando han sido eliminadas las unidades militares del equipo (Francotirador y Artillero)
     
     def turno(self):
-  
         print(self.resumenDelEquipo())
         print(self.tablero.situacionDelTablero())
-
-        print(self.equipo)
-        self.realizarAccion()  
-
+        accion = self.realizarAccion()  # <-- Guarda la acción
         self.reiniciarEnfriamiento()
+        return accion  # <-- ¡Este return es CLAVE!
 
         
         
@@ -161,6 +158,7 @@ class Jugador:
                     
                     accion = unidad.habilidad(self.tablero)  # Usa el tablero propio
    
+                    print(accion)
                     return accion
             else:
                 print("Opción no válida. Intenta de nuevo.")
@@ -179,16 +177,33 @@ class Jugador:
 
     def recibirAccion(self, accion):
         print(f"[RECEPCIÓN DE ACCIÓN]: {accion}")
+        resultados = []  # Para acumular todos los mensajes
+
         if accion.startswith("F"):
-            coord = accion[1:]
-            fila = int(coord[1:]) - 1
-            columna = ord(coord[0]) - ord('A')
-            unidad = self.tablero.obtenerUnidadEn(fila, columna)
+            coordenada = accion[1:]
+            fila = int(coordenada[1:]) - 1
+            columna = ord(coordenada[0]) - ord('A')
+
+            unidad = self.tablero.tablero[fila][columna]
+            
             if unidad:
-                unidad.recibir_dano(3)
-                return f"IMPACTO en {coord} a {unidad.__class__.__name__}"
+                unidad.vida_actual -= 3
+                unidad.vida_actual = max(0, unidad.vida_actual)
+
+                resultados.append(f"IMPACTO en {coordenada} a {unidad.__class__.__name__}")
+
+                if unidad.vida_actual <= 0:
+                    resultados.append(f"{unidad.__class__.__name__} ha sido eliminado.")
+                    self.tablero.tablero[fila][columna] = None
             else:
-                return f"FALLO en {coord}"
+                resultados.append(f"FALLO en {coordenada}")
+
+        else:
+            resultados.append("Acción desconocida")
+
+        # Unimos los resultados en una sola cadena para enviarla al jugador activo
+        return "\n".join(resultados)
+
     
     #crear_equipo():función auxiliar para crearlos personajes y añadirlos a la lista del equipo.
     def crearEquipo(self):
