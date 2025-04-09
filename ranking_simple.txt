@@ -1,0 +1,7 @@
+pepe:1700
+alice:1200
+bob:1100
+carlos:950
+diana:900
+elena:870
+livan:400

@@ -1,15 +1,18 @@
 import threading
 import pickle
+import random
 from .Jugador import Jugador
 from .Tablero import Tablero
 
 class Partida(threading.Thread):
-    def __init__(self, jugador1, jugador2):
+    def __init__(self, jugador1, jugador2, ranking, archivo_ranking):
         super().__init__()
         self.jugador1 = jugador1
         self.jugador2 = jugador2
         self.jugadores = [jugador1, jugador2]
         self.juego_activo = True
+        self.ranking = ranking
+        self.archivo_ranking = archivo_ranking
 
     def enviar_a_ambos(self, mensaje):
         try:
@@ -33,7 +36,11 @@ class Partida(threading.Thread):
             self.jugador1.socket.sendall(f"Empiezas la partida contra {self.jugador2.nombre}. Eres el Jugador 1.\n".encode())
             self.jugador2.socket.sendall(f"Empiezas la partida contra {self.jugador1.nombre}. Eres el Jugador 2.\n".encode())
 
-            turno = 0
+            # Elegir aleatoriamente quién empieza
+            turno = random.randint(0, 1)
+            primero = self.jugadores[turno % 2].nombre
+            self.enviar_a_ambos(f"🎲 El jugador que comienza es: {primero}\n")
+
             while self.juego_activo:
                 jugador_activo = self.jugadores[turno % 2]
                 jugador_esperando = self.jugadores[(turno + 1) % 2]
@@ -65,6 +72,30 @@ class Partida(threading.Thread):
                     self.juego_activo = False
                     jugador_activo.socket.sendall("GANASTE\n".encode())
                     jugador_esperando.socket.sendall("PERDISTE\n".encode())
+
+                    # Calcular puntuaciones
+                    turnos_jugados = turno
+                    vivos_ganador = sum(1 for u in jugador_activo.jugador.equipo if u.vida_actual > 0)
+                    vivos_perdedor = sum(1 for u in jugador_esperando.jugador.equipo if u.vida_actual > 0)
+                    muertos_oponente = 4 - vivos_perdedor
+                    muertos_jugador = 4 - vivos_ganador
+
+                    pts_ganador = 1000 + max(0, (20 - turnos_jugados)) * 20 + vivos_ganador * 100 + muertos_oponente * 100
+                    pts_perdedor = (turnos_jugados - 10) * 20 if turnos_jugados > 10 else 0
+                    pts_perdedor += vivos_perdedor * 100 + muertos_jugador * 100
+
+                    if pts_perdedor > pts_ganador:
+                        pts_ganador = 1000
+                        pts_perdedor = 900
+
+                    self.ranking.insertar_ordenado(self.jugador1.nombre, pts_ganador if self.jugador1 == jugador_activo else pts_perdedor)
+                    self.ranking.insertar_ordenado(self.jugador2.nombre, pts_ganador if self.jugador2 == jugador_activo else pts_perdedor)
+
+                    self.ranking.guardar_en_archivo(self.archivo_ranking)
+
+                    ranking_str = self.ranking.to_string()
+                    self.jugador1.socket.sendall(ranking_str.encode())
+                    self.jugador2.socket.sendall(ranking_str.encode())
                     break
 
                 turno += 1

@@ -1,16 +1,20 @@
-# servidor.py
 import socket
 import threading
 import sys
 from Clases.Gestion.Cliente import Cliente
 from Clases.Gestion.Cola import Cola
 from Clases.Partida import Partida
+from Clases.Gestion.Ranking import Ranking
 
-# Datos de configuración
+# Configuración y carga de ranking
+ARCHIVO_RANKING = sys.argv[3]
+ranking_global = Ranking()
+ranking_global.cargar_desde_archivo(ARCHIVO_RANKING)
+
+# Datos de red
 IP = "0.0.0.0"
 PORT = int(sys.argv[1])
 MAX_PARTIDAS = int(sys.argv[2])
-ARCHIVO_RANKING = sys.argv[3]
 
 # Lobby y contador de partidas
 lobby = Cola()
@@ -32,7 +36,6 @@ def manejar_cliente(conn, addr):
             else:
                 rival = lobby.desencolar()
                 print(f"[MATCH] {rival.nombre} vs {cliente.nombre}")
-                # Aquí lanzarás la partida en un nuevo hilo
                 hilo = threading.Thread(target=iniciar_partida, args=(rival, cliente))
                 hilo.start()
                 partidas_en_curso += 1
@@ -40,13 +43,11 @@ def manejar_cliente(conn, addr):
     except Exception as e:
         print(f"[ERROR] Error con {addr}: {e}")
     finally:
-        pass  # cerrar conexión cuando sea necesario
-
+        pass
 
 def iniciar_partida(cliente1, cliente2):
-    partida = Partida(cliente1, cliente2)
+    partida = Partida(cliente1, cliente2, ranking_global, ARCHIVO_RANKING)
     partida.start()
-
 
 def iniciar_servidor():
     servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -58,6 +59,6 @@ def iniciar_servidor():
         conn, addr = servidor.accept()
         threading.Thread(target=manejar_cliente, args=(conn, addr)).start()
 
-
 if __name__ == "__main__":
     iniciar_servidor()
+
