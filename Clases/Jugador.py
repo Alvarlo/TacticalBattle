@@ -42,14 +42,14 @@ class Jugador:
 
 
     def resumenDelEquipo(self):
-        print("\n---- SITUACION DEL EQUIPO ----")
+        resumen = "\n---- SITUACION DEL EQUIPO ----\n"
         for unidad in self.equipo:
             x = unidad.posicion["x"]
             y = unidad.posicion["y"]
-            letra_columna = chr(ord('A') + y)  # convierte 0 → A, 1 → B, etc.
-            numero_fila = x + 1                # convierte 0 → 1, etc.
-            print(f"{unidad.__class__.__name__} está en {letra_columna}{numero_fila} [Vida {unidad.vida_actual}/{unidad.vida_maxima}][enfriamiento:{unidad.enfriamiento_restante}]")
-
+            letra_columna = chr(ord('A') + y)
+            numero_fila = x + 1
+            resumen += f"{unidad.__class__.__name__} está en {letra_columna}{numero_fila} [Vida {unidad.vida_actual}/{unidad.vida_maxima}][enfriamiento:{unidad.enfriamiento_restante}]\n"
+        return resumen
 
     def mostrar_menu_acciones(self):
         print("\n----- MENÚ DE ACCIONES -----")
@@ -103,17 +103,15 @@ class Jugador:
     
     def turno(self):
   
-        self.resumenDelEquipo()
-        self.tablero.situacionDelTablero()
+        print(self.resumenDelEquipo())
+        print(self.tablero.situacionDelTablero())
+
+        print(self.equipo)
         self.realizarAccion()  
 
         self.reiniciarEnfriamiento()
 
-        if self.oponentesMilitaresVivos(): 
-            return False      
-        else:
-            return True
-            
+        
         
     
     #realizar_accion(): permite al jugador elegir una acción de entre las acciones disponibles 
@@ -155,19 +153,15 @@ class Jugador:
 
                         if self.tablero.esPosibleMoverAqui(fila, columna):
                             unidad.mover(coordenada, self.tablero)
-                            return  # acción válida realizada → salimos del método
+                            return ""
                         else:
                             print("No se puede mover a esa posición. Está ocupada o fuera del tablero.")
 
                 elif accion == "habilidad":
-                    if unidad.__class__.__name__ == "Medico":
-                        unidad.habilidad(self.tablero)  # Usa el tablero propio
-
-                        
-                    else:
-                        unidad.habilidad(self.oponente.tablero)  # Usa el tablero enemigo
-                        
-                    return  # acción válida realizada → salimos del método
+                    
+                    accion = unidad.habilidad(self.tablero)  # Usa el tablero propio
+   
+                    return accion
             else:
                 print("Opción no válida. Intenta de nuevo.")
 
@@ -183,9 +177,18 @@ class Jugador:
     # o Un diccionario con dos keys: una para informar del resultado al enemigo y otra 
     # para indicar si la partida ha terminado como resultado de la acción recibida.
 
-    def recibirAccion(self,accion):
-        print(accion)
-        return accion
+    def recibirAccion(self, accion):
+        print(f"[RECEPCIÓN DE ACCIÓN]: {accion}")
+        if accion.startswith("F"):
+            coord = accion[1:]
+            fila = int(coord[1:]) - 1
+            columna = ord(coord[0]) - ord('A')
+            unidad = self.tablero.obtenerUnidadEn(fila, columna)
+            if unidad:
+                unidad.recibir_dano(3)
+                return f"IMPACTO en {coord} a {unidad.__class__.__name__}"
+            else:
+                return f"FALLO en {coord}"
     
     #crear_equipo():función auxiliar para crearlos personajes y añadirlos a la lista del equipo.
     def crearEquipo(self):

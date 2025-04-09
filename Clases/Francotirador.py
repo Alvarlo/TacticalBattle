@@ -6,8 +6,7 @@ class Francotirador(Personaje):
         super().__init__(vida_maxima, vida_actual,danyo,posicion,enfriamiento_restante,icono,tipo)
 
 
-    def habilidad(self, tablero):
-        tablero.situacionDelTablero()
+    def habilidad(self,tablero):
         print("Ataca en 1 celda y quita 3 de vida")
 
         while True:
@@ -29,29 +28,10 @@ class Francotirador(Personaje):
                 print("Esa coordenada está fuera del tablero.")
                 continue
 
-            objetivo = tablero.tablero[fila][columna]
-            resultados = []
-
-            if objetivo is not None:
-                objetivo.vida_actual -= 3
-                objetivo.vida_actual = max(0, objetivo.vida_actual)
-                coord = f"{chr(ord('A') + columna)}{fila + 1}"
-                resultados.append(f"Impacto en {coord} → {objetivo.__class__.__name__} recibe 3 de daño. Vida restante: {objetivo.vida_actual}")
-
-                if objetivo.vida_actual <= 0:
-                    resultados.append(f"{objetivo.__class__.__name__} ha sido eliminado.")
-                    tablero.tablero[fila][columna] = None
-            else:
-                resultados.append(f"El ataque no causado ningun daño (La casilla estaba vacía)")
-                
-          
-
-            print("\n--- Resultado del disparo del Francotirador ---")
-            for mensaje in resultados:
-                print(mensaje)
-
             self.enfriamiento_restante = 2
-            break  # Acción realizada correctamente
+
+            return "F"+coordenada
+            
 
 
             
