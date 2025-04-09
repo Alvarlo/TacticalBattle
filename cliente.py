@@ -1,4 +1,3 @@
-
 import socket
 import threading
 import pickle
@@ -12,24 +11,33 @@ jugador = Jugador(tablero)
 def recibir_mensajes(socket_cliente):
     while True:
         try:
-            datos = socket_cliente.recv(4096).decode()
+            datos = socket_cliente.recv(4096)
             if not datos:
                 break
 
-            # Desglosar mensajes por líneas si vienen agrupados
-            mensajes = datos.strip().split("\n")
+            # Intentar decodificar como pickle (dict con resultado)
+            try:
+                mensaje_pickle = pickle.loads(datos)
+                if isinstance(mensaje_pickle, dict) and "mensaje" in mensaje_pickle:
+                    print(f"\n[Servidor]: {mensaje_pickle['mensaje']}")
+                    if mensaje_pickle.get("fin_partida"):
+                        print("\n🎉 ¡Has ganado la partida! 🎉")
+                        return
+                    continue
+            except:
+                pass  # No era un dict con pickle, seguimos
 
-
+            # Procesar como texto plano
+            texto = datos.decode()
+            mensajes = texto.strip().split("\n")
             for mensaje in mensajes:
                 mensaje = mensaje.strip()
                 print(f"\n[Servidor]: {mensaje}")
-                
+
                 if mensaje.startswith("ACCION:"):
                     accion = mensaje[7:].strip()
                     resultado = jugador.recibirAccion(accion)
-                    if resultado is None:
-                        resultado = "Sin efecto"
-                    socket_cliente.sendall(f"RESULTADO:{resultado}\n".encode())
+                    socket_cliente.sendall(pickle.dumps(resultado))
 
                 elif mensaje == "ES_TU_TURNO":
                     realizar_turno(socket_cliente)
@@ -37,9 +45,18 @@ def recibir_mensajes(socket_cliente):
                 elif mensaje == "ESPERA_TURNO":
                     print("Esperando al otro jugador...")
 
+                elif mensaje == "GANASTE":
+                    print("\n🎉 ¡Has ganado la partida! 🎉")
+                    return
+
+                elif mensaje == "PERDISTE":
+                    print("\n😞 Has perdido la partida.")
+                    return
+
                 elif mensaje == "SALIR":
                     print("La partida ha terminado.")
                     return
+
         except Exception as e:
             print(f"\n[Desconectado del servidor]: {e}")
             break
@@ -48,8 +65,9 @@ def realizar_turno(socket_cliente):
     print("\n🎯 ES TU TURNO 🎯\n")
     accion = jugador.turno()  # Esto muestra resumen, tablero y lanza menú
 
-    if accion == None or accion == "":
+    if accion is None or accion.strip() == "":
         accion = "No hay nada que informar"
+
     socket_cliente.sendall(accion.encode())  # Envía la acción como string
 
 def main():

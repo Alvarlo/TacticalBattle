@@ -156,9 +156,7 @@ class Jugador:
 
                 elif accion == "habilidad":
                     
-                    accion = unidad.habilidad(self.tablero)  # Usa el tablero propio
-   
-                    print(accion)
+                    accion = unidad.habilidad(self.tablero)  # Usa el tablero propio         
                     return accion
             else:
                 print("Opción no válida. Intenta de nuevo.")
@@ -177,32 +175,88 @@ class Jugador:
 
     def recibirAccion(self, accion):
         print(f"[RECEPCIÓN DE ACCIÓN]: {accion}")
-        resultados = []  # Para acumular todos los mensajes
+
+
+        resultados = []
 
         if accion.startswith("F"):
+            # Francotirador
             coordenada = accion[1:]
             fila = int(coordenada[1:]) - 1
             columna = ord(coordenada[0]) - ord('A')
 
             unidad = self.tablero.tablero[fila][columna]
-            
             if unidad:
                 unidad.vida_actual -= 3
                 unidad.vida_actual = max(0, unidad.vida_actual)
-
                 resultados.append(f"IMPACTO en {coordenada} a {unidad.__class__.__name__}")
-
                 if unidad.vida_actual <= 0:
                     resultados.append(f"{unidad.__class__.__name__} ha sido eliminado.")
                     self.tablero.tablero[fila][columna] = None
             else:
                 resultados.append(f"FALLO en {coordenada}")
 
-        else:
-            resultados.append("Acción desconocida")
+        elif accion.startswith("A"):
+            # Artillero
+            coordenada = accion[1:]
+            fila_inicio = int(coordenada[1:]) - 1
+            columna_inicio = ord(coordenada[0]) - ord('A')
 
-        # Unimos los resultados en una sola cadena para enviarla al jugador activo
-        return "\n".join(resultados)
+            for dx in range(2):
+                for dy in range(2):
+                    fila = fila_inicio + dx
+                    columna = columna_inicio + dy
+
+                    if 0 <= fila < self.tablero.cantidadFilas and 0 <= columna < self.tablero.cantidadColumnas:
+                        unidad = self.tablero.tablero[fila][columna]
+                        if unidad:
+                            unidad.vida_actual -= 1
+                            unidad.vida_actual = max(0, unidad.vida_actual)
+                            coord = chr(ord('A') + columna) + str(fila + 1)
+                            resultados.append(f"IMPACTO en {coord} a {unidad.__class__.__name__}")
+                            if unidad.vida_actual <= 0:
+                                resultados.append(f"{unidad.__class__.__name__} ha sido eliminado en {coord}.")
+                                self.tablero.tablero[fila][columna] = None
+
+        elif accion.startswith("I"):
+            # Inteligencia
+            coordenada = accion[1:]
+            fila_inicio = int(coordenada[1:]) - 1
+            columna_inicio = ord(coordenada[0]) - ord('A')
+
+            resultados.append(f"[INTELIGENCIA] Escaneando zona 2x2 desde {coordenada}...")
+
+            for dx in range(2):
+                for dy in range(2):
+                    fila = fila_inicio + dx
+                    columna = columna_inicio + dy
+
+                    if 0 <= fila < self.tablero.cantidadFilas and 0 <= columna < self.tablero.cantidadColumnas:
+                        unidad = self.tablero.tablero[fila][columna]
+                        coord = chr(ord('A') + columna) + str(fila + 1)
+                        if unidad:
+                            resultados.append(f"UNIDAD ENCONTRADA: {unidad.__class__.__name__} en {coord}")
+                        else:
+                            resultados.append(f"NADA en {coord}")
+
+        else:
+            resultados.append("Nada que informar")
+
+
+        # Comprobamos si aún quedan unidades militares vivas
+        quedan_militares = any(
+            unidad.__class__.__name__ in ["Francotirador", "Artillero"] and unidad.vida_actual > 0
+            for unidad in self.equipo
+        )
+
+        # Devolvemos el mensaje y si se acabó la partida
+        return {
+            "mensaje": "\n".join(resultados),
+            "fin_partida": not quedan_militares
+        }
+     
+
+
 
     
     #crear_equipo():función auxiliar para crearlos personajes y añadirlos a la lista del equipo.
